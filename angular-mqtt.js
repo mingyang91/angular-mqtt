@@ -2,13 +2,19 @@
 (function() {
   var connections, generateClientId, getEmitTopic;
 
-  angular.module('ngMqtt', []).factory('mqtt', [
-    '$window', '$rootScope', function($window, $rootScope) {
-      var client, clientId, generateClientId, host, path, port;
-      host = 'q.m2m.io';
-      port = 4483;
-      path = '/mqtt';
-      clientId = '';
+  angular.module('ngMqtt', []).provider('mqtt', [
+    '$windowProvider', '$rootScopeProvider', function($windowProvider, $rootScopeProvider) {
+      var $rootScope, _namespace, client, generateClientId;
+      $rootScope = $rootScopeProvider.$get[$rootScopeProvider.$get.length - 1]();
+      _namespace = '';
+      this.namespace = {
+        getter: function() {
+          return _namespace;
+        },
+        setter: function(value) {
+          return _namespace = value;
+        }
+      };
       client = void 0;
       generateClientId = function() {
         var i, length, possible, text;
@@ -25,38 +31,57 @@
         return 'websocket/' + text;
       };
       return {
-        generateClientId: generateClientId,
-        connect: function(opts) {
-          console.log(opts);
-          client = new $window.Paho.MQTT.Client(opts.broker, opts.port, opts.path, generateClientId());
-          client.onConnectionLost = function(res) {
-            console.log(res);
-            return $rootScope.$emit('lost', res);
+        $get: function() {
+          return {
+            generateClientId: generateClientId,
+            connect: function(opts) {
+              console.log(opts);
+              client = new ($windowProvider.$get().Paho.MQTT.Client)(opts.broker, opts.port, generateClientId());
+              client.onConnectionLost = function(res) {
+                console.log('lost' + res);
+                return $rootScope.$emit(_namespace + 'lost', res);
+              };
+              client.onMessageArrived = function(message) {
+                console.log('arrived' + message);
+                return $rootScope.$emit('arrived', message);
+              };
+              return client.connect({
+                userName: opts.username,
+                password: opts.password,
+                useSSL: opts.useSSL,
+                keepAliveInterval: opts.keepalive,
+                mqttVersion: opts.mqttVersion,
+                onSuccess: function() {
+                  return console.log('connected');
+                },
+                onFailure: function(err) {
+                  return console.log(err);
+                },
+                timeout: opts.timeout,
+                cleanSession: opts.cleanSession
+              });
+            }
           };
-          client.onMessageArrived = function(message) {
-            console.log(message);
-            return $rootScope.$emit('arrived', message);
-          };
-          return client.connect({
-            userName: opts.username,
-            password: opts.password,
-            useSSL: opts.useSSL,
-            keepAliveInterval: opts.keepalive
-          });
         }
       };
+    }
+  ]).config([
+    'mqttProvider', function(mqttProvider) {
+      return mqttProvider.namespace = 'my';
     }
   ]).controller('ctrl', [
     '$scope', 'mqtt', function($scope, mqtt) {
       return mqtt.connect({
-        broker: 'q.m2m.io',
-        port: 4833,
+        broker: 'localhost',
+        port: 1883,
         path: '/mqtt',
         username: 'cbefb25b-0c8c-4e70-a21d-9c381bc7e4bb',
         password: 'a185b3de0fa03c1818ba0ac21bf173dd',
-        useSSL: true,
+        useSSL: false,
         keepalive: 30,
-        mqttVersion: 3.1
+        timeout: 10,
+        mqttVersion: 3.1,
+        cleanSession: true
       });
     }
   ]);

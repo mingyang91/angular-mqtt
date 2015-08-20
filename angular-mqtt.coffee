@@ -1,9 +1,14 @@
 angular.module 'ngMqtt', []
-.factory 'mqtt', ['$window', '$rootScope', ($window, $rootScope) ->
-  host = 'q.m2m.io'
-  port = 4483
-  path = '/mqtt'
-  clientId = ''
+.provider 'mqtt', ['$windowProvider', '$rootScopeProvider', ($windowProvider, $rootScopeProvider) ->
+
+  $rootScope = $rootScopeProvider.$get[$rootScopeProvider.$get.length - 1]()
+  _namespace = ''
+  this.namespace =
+    getter: () ->
+      return _namespace
+    setter: (value) ->
+      _namespace = value
+
   client = undefined
 
   generateClientId = () ->
@@ -12,39 +17,62 @@ angular.module 'ngMqtt', []
     text = ((possible.charAt(Math.floor(Math.random() * possible.length))) for i in [1...length]).join ''
     'websocket/' + text
 
-  {
+
+
+
+  $get: () ->
     generateClientId: generateClientId,
     connect: (opts) ->
       console.log opts
-      client = new $window.Paho.MQTT.Client opts.broker, opts.port, opts.path, generateClientId()
+      client = new ($windowProvider.$get().Paho.MQTT.Client) opts.broker, opts.port, generateClientId()
 
       client.onConnectionLost = (res) ->
-        console.log res
-        $rootScope.$emit 'lost', res
+        console.log 'lost' + res
+        $rootScope.$emit _namespace + 'lost', res
 
       client.onMessageArrived = (message) ->
-        console.log message
+        console.log 'arrived' + message
         $rootScope.$emit 'arrived', message
 
-      client.connect {
-        userName: opts.username,
-        password: opts.password,
-        useSSL: opts.useSSL,
+      client.connect
+        userName: opts.username
+        password: opts.password
+        useSSL: opts.useSSL
         keepAliveInterval: opts.keepalive
-      }
-  }
+        mqttVersion: opts.mqttVersion
+        onSuccess: () -> console.log 'connected'
+        onFailure: (err) -> console.log err
+        timeout: opts.timeout
+        cleanSession: opts.cleanSession
+
+]
+.config ['mqttProvider', (mqttProvider) ->
+  mqttProvider.namespace = 'my'
 ]
 .controller 'ctrl', ['$scope', 'mqtt', ($scope, mqtt) ->
-  mqtt.connect {
-    broker: 'q.m2m.io',
-    port: 4833,
-    path: '/mqtt',
-    username: 'cbefb25b-0c8c-4e70-a21d-9c381bc7e4bb',
-    password: 'a185b3de0fa03c1818ba0ac21bf173dd',
-    useSSL: true,
-    keepalive: 30,
+#  mqtt.connect
+#    broker: 'q.m2m.io'
+#    port: 4483
+#    path: '/mqtt'
+#    username: 'cbefb25b-0c8c-4e70-a21d-9c381bc7e4bb'
+#    password: 'a185b3de0fa03c1818ba0ac21bf173dd'
+#    useSSL: true
+#    keepalive: 30
+#    timeout: 10
+#    mqttVersion: 3.1
+#    cleanSession: true
+
+  mqtt.connect
+    broker: 'localhost'
+    port: 1883
+    path: '/mqtt'
+    username: 'cbefb25b-0c8c-4e70-a21d-9c381bc7e4bb'
+    password: 'a185b3de0fa03c1818ba0ac21bf173dd'
+    useSSL: false
+    keepalive: 30
+    timeout: 10
     mqttVersion: 3.1
-  }
+    cleanSession: true
 ]
 
 
