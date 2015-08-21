@@ -24,26 +24,16 @@ angular.module 'ngMqtt', []
     generateClientId: generateClientId,
     connect: (opts) ->
       console.log opts
-      client = new ($windowProvider.$get().Paho.MQTT.Client) opts.broker, opts.port, generateClientId()
 
-      client.onConnectionLost = (res) ->
-        console.log 'lost' + res
-        $rootScope.$emit _namespace + 'lost', res
+      client = $windowProvider.$get().mqtt.connect({host: '127.0.0.1', port: 1883, path: '/mqtt', })
+      client.on 'connect', () ->
+        client.subscribe('presence')
+        client.publish('presence', 'Hello mqtt')
 
-      client.onMessageArrived = (message) ->
-        console.log 'arrived' + message
-        $rootScope.$emit 'arrived', message
-
-      client.connect
-        userName: opts.username
-        password: opts.password
-        useSSL: opts.useSSL
-        keepAliveInterval: opts.keepalive
-        mqttVersion: opts.mqttVersion
-        onSuccess: () -> console.log 'connected'
-        onFailure: (err) -> console.log err
-        timeout: opts.timeout
-        cleanSession: opts.cleanSession
+      client.on 'message', (topic, message) ->
+        # message is Buffer
+        console.log message.toString()
+        client.end()
 
 ]
 .config ['mqttProvider', (mqttProvider) ->
@@ -62,12 +52,22 @@ angular.module 'ngMqtt', []
 #    mqttVersion: 3.1
 #    cleanSession: true
 
+#  mqtt.connect
+#    broker: 'localhost'
+#    port: 1883
+#    username: ''
+#    password: ''
+#    useSSL: false
+#    keepalive: 30
+#    timeout: 10
+#    mqttVersion: 3.1
+#    cleanSession: true
+
   mqtt.connect
-    broker: 'localhost'
-    port: 1883
-    path: '/mqtt'
-    username: 'cbefb25b-0c8c-4e70-a21d-9c381bc7e4bb'
-    password: 'a185b3de0fa03c1818ba0ac21bf173dd'
+    broker: 'broker.mqttdashboard.com'
+    port: 8000
+    username: ''
+    password: ''
     useSSL: false
     keepalive: 30
     timeout: 10

@@ -36,29 +36,18 @@
             generateClientId: generateClientId,
             connect: function(opts) {
               console.log(opts);
-              client = new ($windowProvider.$get().Paho.MQTT.Client)(opts.broker, opts.port, generateClientId());
-              client.onConnectionLost = function(res) {
-                console.log('lost' + res);
-                return $rootScope.$emit(_namespace + 'lost', res);
-              };
-              client.onMessageArrived = function(message) {
-                console.log('arrived' + message);
-                return $rootScope.$emit('arrived', message);
-              };
-              return client.connect({
-                userName: opts.username,
-                password: opts.password,
-                useSSL: opts.useSSL,
-                keepAliveInterval: opts.keepalive,
-                mqttVersion: opts.mqttVersion,
-                onSuccess: function() {
-                  return console.log('connected');
-                },
-                onFailure: function(err) {
-                  return console.log(err);
-                },
-                timeout: opts.timeout,
-                cleanSession: opts.cleanSession
+              client = $windowProvider.$get().mqtt.connect({
+                host: '127.0.0.1',
+                port: 1883,
+                path: '/mqtt'
+              });
+              client.on('connect', function() {
+                client.subscribe('presence');
+                return client.publish('presence', 'Hello mqtt');
+              });
+              return client.on('message', function(topic, message) {
+                console.log(message.toString());
+                return client.end();
               });
             }
           };
@@ -72,11 +61,10 @@
   ]).controller('ctrl', [
     '$scope', 'mqtt', function($scope, mqtt) {
       return mqtt.connect({
-        broker: 'localhost',
-        port: 1883,
-        path: '/mqtt',
-        username: 'cbefb25b-0c8c-4e70-a21d-9c381bc7e4bb',
-        password: 'a185b3de0fa03c1818ba0ac21bf173dd',
+        broker: 'broker.mqttdashboard.com',
+        port: 8000,
+        username: '',
+        password: '',
         useSSL: false,
         keepalive: 30,
         timeout: 10,
