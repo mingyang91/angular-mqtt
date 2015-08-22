@@ -13,7 +13,7 @@ var settings = {
   http: {
     port: 3000,
     bundle: true,
-    static: './'
+    static: './mqtt'
   },
   backend: ascoltatore
 };
@@ -29,9 +29,10 @@ server.on('published', function(packet, client) {
   console.log('Published', packet.payload);
 });
 
-server.on('ready', setup);
-
 // fired when the mqtt server is ready
 function setup() {
   console.log('Mosca server is up and running');
 }
+
+server.on('ready', setup);
+

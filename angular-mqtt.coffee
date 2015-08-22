@@ -1,13 +1,14 @@
-angular.module 'ngMqtt', []
-.provider 'mqtt', ['$windowProvider', '$rootScopeProvider', ($windowProvider, $rootScopeProvider) ->
+angular.module('ngMqtt', [])
+
+.provider('mqtt', ['$windowProvider', '$rootScopeProvider', ($windowProvider, $rootScopeProvider) ->
 
   $rootScope = $rootScopeProvider.$get[$rootScopeProvider.$get.length - 1]()
   _namespace = ''
-  this.namespace =
-    getter: () ->
-      return _namespace
-    setter: (value) ->
-      _namespace = value
+
+
+
+
+
 
   client = undefined
 
@@ -20,26 +21,42 @@ angular.module 'ngMqtt', []
 
 
 
-  $get: () ->
-    generateClientId: generateClientId,
-    connect: (opts) ->
-      console.log opts
+  mqtt =
+    $get: () ->
+      generateClientId: generateClientId,
+      connect: (opts) ->
+        console.log opts
+        opts = opts || {}
 
-      client = $windowProvider.$get().mqtt.connect({host: '127.0.0.1', port: 3000, path: '/mqtt', })
-      client.on 'connect', () ->
-        client.subscribe('presence')
-        client.publish('presence', 'Hello mqtt')
+        client = $windowProvider.$get().mqtt.connect
+          host: opts.host
+          port: opts.port
+          path: opts.path
+          clientId: generateClientId()
+        client.on 'connect', () ->
+          client.subscribe('presence')
+          client.publish('presence', 'Hello mqtt')
 
-      client.on 'message', (topic, message) ->
-        # message is Buffer
-        console.log message.toString()
-        client.end()
+        client.on 'message', (topic, message) ->
+          # message is Buffer
+          console.log _namespace + message.toString()
+          client.end()
 
-]
-.config ['mqttProvider', (mqttProvider) ->
+
+  Object.defineProperty mqtt, 'namespace',
+    get: () ->
+      _namespace
+    set: (value) ->
+      _namespace = value
+
+  mqtt
+])
+
+.config(['mqttProvider', (mqttProvider) ->
   mqttProvider.namespace = 'my'
-]
-.controller 'ctrl', ['$scope', 'mqtt', ($scope, mqtt) ->
+])
+
+.controller('ctrl', ['$scope', 'mqtt', ($scope, mqtt) ->
 #  mqtt.connect
 #    broker: 'q.m2m.io'
 #    port: 4483
@@ -52,20 +69,10 @@ angular.module 'ngMqtt', []
 #    mqttVersion: 3.1
 #    cleanSession: true
 
-#  mqtt.connect
-#    broker: 'localhost'
-#    port: 1883
-#    username: ''
-#    password: ''
-#    useSSL: false
-#    keepalive: 30
-#    timeout: 10
-#    mqttVersion: 3.1
-#    cleanSession: true
-
   mqtt.connect
-    broker: 'broker.mqttdashboard.com'
-    port: 8000
+    host: 'localhost'
+    port: 3000
+    path: '/mqtt'
     username: ''
     password: ''
     useSSL: false
@@ -73,10 +80,11 @@ angular.module 'ngMqtt', []
     timeout: 10
     mqttVersion: 3.1
     cleanSession: true
-]
+
+])
 
 
-angular.module 'ng-mqtt', []
+angular.module('ng-mqtt', [])
   .factory 'mqtt', ['$window', ($window) ->
   connections = {}
 
