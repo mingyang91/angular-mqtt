@@ -25,7 +25,7 @@ angular.module 'ngMqtt', []
     connect: (opts) ->
       console.log opts
 
-      client = $windowProvider.$get().mqtt.connect({host: '127.0.0.1', port: 1883, path: '/mqtt', })
+      client = $windowProvider.$get().mqtt.connect({host: '127.0.0.1', port: 3000, path: '/mqtt', })
       client.on 'connect', () ->
         client.subscribe('presence')
         client.publish('presence', 'Hello mqtt')

@@ -2,26 +2,17 @@
  * Created by famer.me on 15-8-10.
  */
 
-var conn = mqtt.createConnection(
-  1883,
-  'localhost',
-  function(err, client) {
-    if (err) throw err;
+client =mqtt.connect({
+  host: '127.0.0.1',
+  port: 3000,
+  path: '/mqtt'
+});
+client.on('connect', function() {
+  client.subscribe('presence');
+  return client.publish('presence', 'Hello mqtt');
+});
+client.on('message', function(topic, message) {
+  console.log(message.toString());
+  return client.end();
+});
 
-    client.connect({
-      protocolId: 'MQIsdp',
-      protocolVersion: 3,
-      clientId: 'example',
-      keepalive: 30000
-    });
-
-    client.on('connack', function(packet) {
-      if (packet.returnCode !== 0) {
-        throw 'Connect error'
-      }
-      client.publish({
-        topic: 'example',
-        payload: new Buffer('example', 'utf8')
-      });
-    });
-  });
