@@ -19,7 +19,7 @@ angular.module('ngMqtt', [])
     'websocket/' + text
 
 
-
+  connections = {}
 
   mqtt =
     $get: () ->
@@ -33,14 +33,36 @@ angular.module('ngMqtt', [])
           port: opts.port
           path: opts.path
           clientId: generateClientId()
-        client.on 'connect', () ->
-          client.subscribe('presence')
-          client.publish('presence', 'Hello mqtt')
+
 
         client.on 'message', (topic, message) ->
           # message is Buffer
           console.log _namespace + message.toString()
           client.end()
+
+        connections.push
+          option: opts
+          client: client
+
+        connections.length - 1
+
+      publish: (id, topic, message) ->
+        if typeof connections[id] is undefined
+          throw new Error 'connect id not found'
+        client = connections[id]
+        if client.connected
+          client.publish 'presence', message
+        else
+          throw new Error 'connect not connected'
+
+      subscribe: (id, topic) ->
+        if typeof connections[id] is undefined
+          throw new Error 'connect id not found'
+        client = connections[id]
+        if client.connected
+          client.subscribe 'presence'
+        else
+          throw new Error 'connect not connected'
 
 
   Object.defineProperty mqtt, 'namespace',
