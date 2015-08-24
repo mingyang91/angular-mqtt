@@ -1,16 +1,13 @@
 angular.module('ngMqtt', [])
 
-.provider('mqtt', ['$windowProvider', '$rootScopeProvider', ($windowProvider, $rootScopeProvider) ->
+.provider('mqtt', [() ->
 
-  $rootScope = $rootScopeProvider.$get[$rootScopeProvider.$get.length - 1]()
+#  $rootScope = $rootScopeProvider.$get[$rootScopeProvider.$get.length - 1]()
   _namespace = ''
-
-
-
-
-
-
-  client = undefined
+  NS_STYLE = 'font-size: 13px; font-weight: bold; color: #606;'
+  TOPIC_STYLE = 'font-size: 13px;'
+  MSG_STYLE = 'font-size: 12px; font-style: italic; color: #777;'
+  KEYWORD_STYLE = 'font-size: 13px; color: #008;'
 
   generateClientId = () ->
     length = 10
@@ -18,52 +15,58 @@ angular.module('ngMqtt', [])
     text = ((possible.charAt(Math.floor(Math.random() * possible.length))) for i in [1...length]).join ''
     'websocket/' + text
 
-
-  connections = {}
+  connections = []
 
   mqtt =
-    $get: () ->
+    $get: ['$window', '$rootScope', '$q', ($window, $rootScope, $q) ->
       generateClientId: generateClientId,
       connect: (opts) ->
         console.log opts
         opts = opts || {}
 
-        client = $windowProvider.$get().mqtt.connect
+        client = $window.mqtt.connect
           host: opts.host
           port: opts.port
           path: opts.path
           clientId: generateClientId()
 
-
         client.on 'message', (topic, message) ->
           # message is Buffer
-          console.log _namespace + message.toString()
-          client.end()
 
-        connections.push
-          option: opts
-          client: client
+          console.log '%c%s %ctopic:%c%s %cmessage:%c%s', NS_STYLE, _namespace, KEYWORD_STYLE, TOPIC_STYLE, topic, KEYWORD_STYLE, MSG_STYLE, message.toString()
+          $rootScope.$emit _namespace + topic, message
+          #client.end()
 
-        connections.length - 1
+        $q (resolve, reject) ->
+          client.on 'connect', () ->
+            connections.push client
+            resolve connections.length - 1
+          client.on 'error', reject
+
 
       publish: (id, topic, message) ->
-        if typeof connections[id] is undefined
-          throw new Error 'connect id not found'
-        client = connections[id]
-        if client.connected
-          client.publish 'presence', message
+        if connections[id] && connections[id].connected
+          connections[id].publish topic, message
         else
-          throw new Error 'connect not connected'
+          throw new Error 'not connected'
 
       subscribe: (id, topic) ->
-        if typeof connections[id] is undefined
-          throw new Error 'connect id not found'
-        client = connections[id]
-        if client.connected
-          client.subscribe 'presence'
+        if connections[id] && connections[id].connected
+          connections[id].subscribe topic
         else
-          throw new Error 'connect not connected'
+          throw new Error 'not connected'
+      unsubscribe: (id, topic) ->
+        if connections[id] && connections[id].connected
+          connections[id].unsubscribe topic
+        else
+          throw new Error 'not connected'
 
+      disconnect: (id) ->
+        if connections[id] && connections[id].connected
+          throw new Error 'not connected'
+        else
+          connections[id].end()
+    ]
 
   Object.defineProperty mqtt, 'namespace',
     get: () ->
@@ -91,7 +94,7 @@ angular.module('ngMqtt', [])
 #    mqttVersion: 3.1
 #    cleanSession: true
 
-  mqtt.connect
+  connect = mqtt.connect
     host: 'localhost'
     port: 3000
     path: '/mqtt'
@@ -102,6 +105,11 @@ angular.module('ngMqtt', [])
     timeout: 10
     mqttVersion: 3.1
     cleanSession: true
+  .then (id) ->
+    mqtt.subscribe id, 'hello'
+    mqtt.publish id, 'hello', 'world'
+  , (error) -> console.error error
+
 
 ])
 
