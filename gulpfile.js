@@ -18,6 +18,7 @@ var open          = require('gulp-open');
 var less          = require('gulp-less');
 var order         = require("gulp-order");
 var runSequence   = require('run-sequence');
+var nodemon       = require('gulp-nodemon');
 
 
 var config = {
@@ -138,6 +139,15 @@ gulp.task('karma-serve', function(done){
   }, done);
 });
 
+gulp.task('mqtt-server', function() {
+  nodemon({
+    script: 'server.js'
+  });
+});
+gulp.task('mqtt-server-quit', function () {
+  nodemon.emit('quit');
+});
+
 function handleError(err) {
   console.log(err.toString());
   this.emit('end');
@@ -148,5 +158,5 @@ gulp.task('build', function(cb) {
 });
 gulp.task('serve', ['build', 'connect', 'watch', 'open']);
 gulp.task('default', ['build', 'test']);
-gulp.task('test', ['build', 'jshint-test', 'karma']);
+gulp.task('test', ['build', 'jshint-test', 'mqtt-server','karma', 'mqtt-server-quit']);
 gulp.task('serve-test', ['build', 'watch', 'jshint-test', 'karma-serve']);

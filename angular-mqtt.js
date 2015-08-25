@@ -32,17 +32,15 @@
               generateClientId: generateClientId,
               connect: function(opts) {
                 var client;
-                console.log(opts);
                 opts = opts || {};
-                client = $window.mqtt.connect({
-                  host: opts.host,
-                  port: opts.port,
-                  path: opts.path,
-                  clientId: generateClientId()
-                });
+                if (typeof opts.clientId === 'undefined') {
+                  opts.clientId = generateClientId();
+                }
+                console.log(opts);
+                client = $window.mqtt.connect(opts);
                 client.on('message', function(topic, message) {
                   console.log('%c%s %ctopic:%c%s %cmessage:%c%s', NS_STYLE, _namespace, KEYWORD_STYLE, TOPIC_STYLE, topic, KEYWORD_STYLE, MSG_STYLE, message.toString());
-                  return $rootScope.$emit(_namespace + topic, message);
+                  return $rootScope.$broadcast(_namespace + ':' + topic, message.toString());
                 });
                 return $q(function(resolve, reject) {
                   client.on('connect', function() {
@@ -100,21 +98,25 @@
     }
   ]).controller('ctrl', [
     '$scope', 'mqtt', function($scope, mqtt) {
-      var connect;
-      return connect = mqtt.connect({
-        host: 'localhost',
-        port: 3000,
+      $scope.$on('my:wavocnvukgsu72j/test/angular-mqtt', function(event, msg) {
+        return console.log('on : %s', msg);
+      });
+      return mqtt.connect({
+        clientId: 'test/angular-mqtt',
+        host: 'q.m2m.io',
+        port: 4483,
         path: '/mqtt',
-        username: '',
-        password: '',
-        useSSL: false,
+        username: '51c44d54-3844-4fe2-9b6c-5547996de838',
+        password: '42ed45f7144c9b1757ce1c38f45d7120',
+        useSSL: true,
+        protocol: 'wss',
         keepalive: 30,
         timeout: 10,
         mqttVersion: 3.1,
         cleanSession: true
       }).then(function(id) {
-        mqtt.subscribe(id, 'hello');
-        return mqtt.publish(id, 'hello', 'world');
+        mqtt.subscribe(id, 'wavocnvukgsu72j/test/angular-mqtt');
+        return mqtt.publish(id, 'wavocnvukgsu72j/test/angular-mqtt', 'hello world');
       }, function(error) {
         return console.error(error);
       });

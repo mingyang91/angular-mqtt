@@ -21,20 +21,18 @@ angular.module('ngMqtt', [])
     $get: ['$window', '$rootScope', '$q', ($window, $rootScope, $q) ->
       generateClientId: generateClientId,
       connect: (opts) ->
-        console.log opts
-        opts = opts || {}
 
-        client = $window.mqtt.connect
-          host: opts.host
-          port: opts.port
-          path: opts.path
-          clientId: generateClientId()
+        opts = opts || {}
+        if typeof opts.clientId is 'undefined' then opts.clientId = generateClientId()
+
+        console.log opts
+        client = $window.mqtt.connect opts
 
         client.on 'message', (topic, message) ->
           # message is Buffer
 
           console.log '%c%s %ctopic:%c%s %cmessage:%c%s', NS_STYLE, _namespace, KEYWORD_STYLE, TOPIC_STYLE, topic, KEYWORD_STYLE, MSG_STYLE, message.toString()
-          $rootScope.$emit _namespace + topic, message
+          $rootScope.$broadcast _namespace + ':' + topic, message.toString()
           #client.end()
 
         $q (resolve, reject) ->
@@ -82,33 +80,41 @@ angular.module('ngMqtt', [])
 ])
 
 .controller('ctrl', ['$scope', 'mqtt', ($scope, mqtt) ->
-#  mqtt.connect
-#    broker: 'q.m2m.io'
-#    port: 4483
-#    path: '/mqtt'
-#    username: 'cbefb25b-0c8c-4e70-a21d-9c381bc7e4bb'
-#    password: 'a185b3de0fa03c1818ba0ac21bf173dd'
-#    useSSL: true
-#    keepalive: 30
-#    timeout: 10
-#    mqttVersion: 3.1
-#    cleanSession: true
-
-  connect = mqtt.connect
-    host: 'localhost'
-    port: 3000
+  $scope.$on 'my:wavocnvukgsu72j/test/angular-mqtt', (event, msg) -> console.log 'on : %s', msg
+  mqtt.connect
+    clientId: 'test/angular-mqtt'
+    host: 'q.m2m.io'
+    port: 4483
     path: '/mqtt'
-    username: ''
-    password: ''
-    useSSL: false
+    username: '51c44d54-3844-4fe2-9b6c-5547996de838'
+    password: '42ed45f7144c9b1757ce1c38f45d7120'
+    useSSL: true
+    protocol: 'wss'
     keepalive: 30
     timeout: 10
     mqttVersion: 3.1
     cleanSession: true
   .then (id) ->
-    mqtt.subscribe id, 'hello'
-    mqtt.publish id, 'hello', 'world'
+    mqtt.subscribe id, 'wavocnvukgsu72j/test/angular-mqtt'
+    mqtt.publish id, 'wavocnvukgsu72j/test/angular-mqtt', 'hello world'
   , (error) -> console.error error
+
+#  connect = mqtt.connect
+#    host: 'localhost'
+#    port: 3000
+#    path: '/mqtt'
+#    username: ''
+#    password: ''
+#    useSSL: false
+#    keepalive: 30
+#    timeout: 10
+#    mqttVersion: 3.1
+#    cleanSession: true
+#  .then (id) ->
+#    mqtt.subscribe id, 'hello'
+#    mqtt.publish id, 'hello', 'world'
+#  , (error) -> console.error error
+
 
 
 ])
