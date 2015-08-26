@@ -3,7 +3,7 @@ angular.module('ngMqtt', [])
 .provider('mqtt', [() ->
 
 #  $rootScope = $rootScopeProvider.$get[$rootScopeProvider.$get.length - 1]()
-  _namespace = ''
+  _namespace = 'mqtt'
   NS_STYLE = 'font-size: 13px; font-weight: bold; color: #606;'
   TOPIC_STYLE = 'font-size: 13px;'
   MSG_STYLE = 'font-size: 12px; font-style: italic; color: #777;'
@@ -32,8 +32,17 @@ angular.module('ngMqtt', [])
           # message is Buffer
 
           console.log '%c%s %ctopic:%c%s %cmessage:%c%s', NS_STYLE, _namespace, KEYWORD_STYLE, TOPIC_STYLE, topic, KEYWORD_STYLE, MSG_STYLE, message.toString()
-          $rootScope.$broadcast _namespace + ':' + topic, message.toString()
+          $rootScope.$broadcast mqtt.prefix + topic, message.toString()
           #client.end()
+
+        client.on 'reconnect', () ->
+          $rootScope.$broadcast mqtt.prefix + opts.host, 'reconnect'
+
+        client.on 'close', () ->
+          $rootScope.$broadcast mqtt.prefix + opts.host, 'close'
+
+        client.on 'offline', () ->
+          $rootScope.$broadcast mqtt.prefix + opts.host, 'offline'
 
         $q (resolve, reject) ->
           client.on 'connect', () ->
@@ -71,6 +80,10 @@ angular.module('ngMqtt', [])
       _namespace
     set: (value) ->
       _namespace = value
+
+  Object.defineProperty mqtt, 'prefix',
+    get: () ->
+      if _namespace then _namespace + ':' else ''
 
   mqtt
 ])
